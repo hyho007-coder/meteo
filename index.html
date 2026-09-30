@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stazione Meteo - Casa Ale Romano</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1000px;
+            width: 100%;
+        }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            flex: 1;
+            min-width: 340px;
+            max-width: 460px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #34495e;
+            font-size: 1.4em;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .live-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #2c3e50;
+        }
+        .temp-color { color: #e74c3c; }
+        .press-color { color: #2980b9; }
+        .error-msg {
+            font-size: 0.4em;
+            color: #7f8c8d;
+            display: block;
+            font-weight: normal;
+            margin-top: 5px;
+        }
+        iframe {
+            border: 1px solid #ecf0f1;
+            border-radius: 4px;
+            width: 100%;
+            height: 260px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Casa Ale Romano</h1>
+    <div class="subtitle">Dati del Canale ThingSpeak: 3516549</div>
+
+    <div class="container">
+        <!-- Scheda Temperatura -->
+        <div class="card">
+            <h2>Temperatura</h2>
+            <div class="live-value temp-color" id="temp-val">Caricamento...</div>
+            <!-- Grafico forzato a 120 minuti (2 ore) -->
+            <iframe src="https://thingspeak.com/channels/3516549/charts/1?api_key=TV96LYPRY8JSDVR3&bgcolor=%23ffffff&color=%23d62020&dynamic=true&title=Andamento+Temperatura&type=line&minutes=120"></iframe>
+        </div>
+
+        <!-- Scheda Pressione Atmosferica -->
+        <div class="card">
+            <h2>Pressione Atmosferica</h2>
+            <div class="live-value press-color" id="press-val">Caricamento...</div>
+            <!-- Grafico forzato a 120 minuti (2 ore) -->
+            <iframe src="https://thingspeak.com/channels/3516549/charts/2?api_key=TV96LYPRY8JSDVR3&bgcolor=%23ffffff&color=%230000ff&dynamic=true&title=Andamento+Pressione&type=line&minutes=120"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE DEFINITIVA CANALE E CHIAVE DI LETTURA
+        const channelId = '3516549';
+        const readApiKey = 'TV96LYPRY8JSDVR3'; 
+
+        // Campi sensori 
+        const fieldTemperatura = 'field1'; 
+        const fieldPressione = 'field2';   
+
+        async function fetchMeteoData() {
+            let url = `https://api.thingspeak.com/channels/${channelId}/feeds/last.json?api_key=${readApiKey}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error();
+                
+                const data = await response.json();
+                
+                // Elaborazione Temperatura
+                const tempRaw = data[fieldTemperatura];
+                if (tempRaw !== undefined && tempRaw !== null) {
+                    const tempVal = parseFloat(tempRaw).toFixed(1);
+                    document.getElementById('temp-val').innerHTML = `${tempVal} <span style="font-size:0.6em">°C</span>`;
+                } else {
+                    document.getElementById('temp-val').innerHTML = `N/D <span class="error-msg">Nessun dato nel Field 1</span>`;
+                }
+
+                // Elaborazione Pressione
+                const pressRaw = data[fieldPressione];
+                if (pressRaw !== undefined && pressRaw !== null) {
+                    const pressVal = parseFloat(pressRaw).toFixed(1);
+                    document.getElementById('press-val').innerHTML = `${pressVal} <span style="font-size:0.6em">hPa</span>`;
+                } else {
+                    document.getElementById('press-val').innerHTML = `N/D <span class="error-msg">Nessun dato nel Field 2</span>`;
+                }
+
+            } catch (error) {
+                document.getElementById('temp-val').innerHTML = `Errore <span class="error-msg">Connessione o API errata</span>`;
+                document.getElementById('press-val').innerHTML = `Errore <span class="error-msg">Connessione o API errata</span>`;
+            }
+        }
+
+        // Esegue l'aggiornamento all'apertura e poi ogni 30 secondi
+        fetchMeteoData();
+        setInterval(fetchMeteoData, 30000);
+    </script>
+</body>
+</html>
